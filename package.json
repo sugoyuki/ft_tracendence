@@ -1,0 +1,13 @@
+{
+  "name": "ft_transcendence",
+  "version": "1.0.0",
+  "description": "Pong game platform with real-time multiplayer capabilities",
+  "main": "index.js",
+  "scripts": {
+    "start": "docker-compose up",
+    "build": "docker-compose build",
+    "dev": "docker-compose up --build"
+  },
+  "author": "",
+  "license": "ISC"
+}
