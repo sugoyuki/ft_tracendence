@@ -8,7 +8,7 @@ const CANVAS_HEIGHT = 600
 const PADDLE_HEIGHT = 100
 const PADDLE_WIDTH = 10
 const BALL_SIZE = 10
-const PADDLE_SPEED = 10
+const PADDLE_SPEED = 15
 const BALL_SPEED = 5
 const POINTS_TO_WIN = 5
 

@@ -68,8 +68,8 @@ export default function Game(): HTMLElement {
     </div>
     <div>
       <h3 class="font-bold mb-2">Player 2:</h3>
-      <p><span class="inline-block bg-gray-700 px-2 py-1 rounded mr-2">↑</span> Move Up</p>
-      <p><span class="inline-block bg-gray-700 px-2 py-1 rounded mr-2">↓</span> Move Down</p>
+      <p><span class="inline-block bg-gray-700 px-2 py-1 rounded mr-2">I</span> Move Up</p>
+      <p><span class="inline-block bg-gray-700 px-2 py-1 rounded mr-2">K</span> Move Down</p>
     </div>
   `;
   
@@ -240,7 +240,7 @@ export default function Game(): HTMLElement {
     
     // Enable ready button
     readyButton.disabled = false;
-    readyButton.className = 'btn-primary w-full mt-4 animate-pulse';
+    readyButton.className = 'btn-primary w-full mt-4';
     
     // Subscribe to game state updates
     const unsubscribeState = on('game:state', (state: any) => {

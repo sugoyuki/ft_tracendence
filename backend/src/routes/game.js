@@ -187,6 +187,17 @@ async function routes(fastify, options) {
 
   fastify.get("/", { onRequest: [fastify.authenticate] }, async (request, reply) => {
     try {
+      // クエリパラメーターからinclude_finishedを取得
+      const includeFinished = request.query.include_finished === 'true';
+      
+      // ログ出力を追加してデバッグしやすくする
+      fastify.log.info(`Fetching games with include_finished=${includeFinished}`);
+      
+      // SQLクエリの条件部分を動的に生成
+      const statusCondition = includeFinished 
+        ? "" // 全てのゲームを含める場合はフィルタリングしない
+        : "WHERE g.status IN ('pending', 'waiting', 'playing')"; // 完了したゲームを除外
+      
       const games = await new Promise((resolve, reject) => {
         db.all(
           `
@@ -196,7 +207,7 @@ async function routes(fastify, options) {
           FROM games g
           JOIN users u1 ON g.player1_id = u1.id
           JOIN users u2 ON g.player2_id = u2.id
-          WHERE g.status IN ('pending', 'active')
+          ${statusCondition}
           ORDER BY g.created_at DESC
         `,
           (err, rows) => {

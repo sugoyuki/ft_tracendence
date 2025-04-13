@@ -48,7 +48,7 @@ export function createPongGame(props: PongGameProps): HTMLElement {
       <p class="text-lg mb-4">Press the "Ready to Play" button when you're ready to start.</p>
       <p class="text-sm mb-2">Controls:</p>
       <p class="text-sm">Player 1: W (up) and S (down)</p>
-      <p class="text-sm">Player 2: ↑ (up) and ↓ (down)</p>
+      <p class="text-sm">Player 2: I (up) and K (down)</p>
     `;
   } else {
     overlayMessage.innerHTML = `
@@ -136,23 +136,65 @@ export function createPongGame(props: PongGameProps): HTMLElement {
   
   // Handle keyboard input
   function handleKeyDown(event: KeyboardEvent) {
-    if (!isPlayer || !gameState || gameState.status !== 'playing') return;
-    
     const key = event.key.toLowerCase();
+    console.log('Key pressed:', key, 'User ID:', userId);
+    console.log('Game state:', gameState?.status, 'isPlayer:', isPlayer);
+    console.log('Player IDs - P1:', gameState?.player1?.id, 'P2:', gameState?.player2?.id);
+    
+    // キー入力を検出してログ出力
+    if (key === 'w' || key === 's' || key === 'i' || key === 'k') {
+      console.log(`${key} key detected, attempting paddle move...`);
+    }
+    
+    if (!isPlayer) {
+      console.log('Key ignored: not a player');
+      return;
+    }
+    
+    if (!gameState) {
+      console.log('Key ignored: game state not loaded');
+      return;
+    }
+    
+    if (gameState.status !== 'playing') {
+      console.log('Key ignored: game not in playing state, current state:', gameState.status);
+      return;
+    }
+    
     keysPressed[key] = true;
     
-    // Send paddle movement based on player number
+    // プレイヤー1: W/Sキー
+    if (key === 'w' || key === 's') {
+      console.log('Sending paddle move for W/S key (Player 1)');
+      sendPaddleMove(key === 'w' ? -1 : 1, 'player1');
+      return; // ここで処理を終了
+    }
+    
+    // プレイヤー2: I/Kキー
+    if (key === 'i' || key === 'k') {
+      console.log('Sending paddle move for I/K key (Player 2)');
+      sendPaddleMove(key === 'i' ? -1 : 1, 'player2');
+      return; // ここで処理を終了
+    }
+    
+    // 元々のロジック（使用しないのでコメントアウト）
+    /*
     if (userId === gameState.player1.id) {
       // Player 1: W and S
       if (key === 'w' || key === 's') {
-        sendPaddleMove(key === 'w' ? -1 : 1);
+        console.log('Player 1 move with W/S');
+        sendPaddleMove(key === 'w' ? -1 : 1, 'player1');
       }
     } else if (userId === gameState.player2.id) {
-      // Player 2: Up and Down arrows
-      if (key === 'arrowup' || key === 'arrowdown') {
-        sendPaddleMove(key === 'arrowup' ? -1 : 1);
+      // Player 2: I and K keys
+      if (key === 'i' || key === 'k') {
+        console.log('Player 2 move with I/K');
+        sendPaddleMove(key === 'i' ? -1 : 1, 'player2');
       }
+    } else {
+      console.log('User ID does not match either player');
     }
+    */
   }
   
   function handleKeyUp(event: KeyboardEvent) {
@@ -161,12 +203,24 @@ export function createPongGame(props: PongGameProps): HTMLElement {
   }
   
   // Throttled paddle movement
-  function sendPaddleMove(direction: number) {
+  function sendPaddleMove(direction: number, playerType: 'player1' | 'player2') {
     const now = Date.now();
     if (now - lastPaddleUpdate > 33) { // Limit to ~30 updates per second
+      // プレイヤータイプに基づいて正しいプレイヤーIDを送信
+      let playerIdToSend = userId;
+      
+      // プレイヤー2の場合は強制的にプレイヤー2のIDを送信
+      if (playerType === 'player2' && gameState) {
+        playerIdToSend = gameState.player2.id;
+      } else if (playerType === 'player1' && gameState) {
+        playerIdToSend = gameState.player1.id;
+      }
+      
+      console.log(`Sending paddle move for ${playerType} with ID ${playerIdToSend}. Direction: ${direction}`);
+      
       emit('game:paddle_move', {
         gameId,
-        userId,
+        userId: playerIdToSend,
         direction
       });
       lastPaddleUpdate = now;

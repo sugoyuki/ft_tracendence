@@ -68,11 +68,45 @@ export default function Games(): HTMLElement {
   container.appendChild(pageHeader);
   container.appendChild(gamesGrid);
   
+  // Store event unsubscribe functions
+  const unsubscribeFunctions: (() => void)[] = [];
+  
+  // Cleanup function to remove event listeners when component is removed
+  const cleanup = () => {
+    console.log('Cleaning up Games component event listeners');
+    unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+  };
+  
+  // Setup observer to detect when this component is removed from DOM
+  const setupCleanupObserver = () => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.removedNodes.forEach((node) => {
+          if (node === container) {
+            cleanup();
+            observer.disconnect();
+          }
+        });
+      });
+    });
+    
+    // Start observing the parent element for child removals
+    if (container.parentElement) {
+      observer.observe(container.parentElement, { childList: true });
+    }
+  };
+  
+  // Clean up on page unload as well
+  window.addEventListener('beforeunload', cleanup);
+  
   // Setup socket listeners for real-time updates
   setupSocketListeners();
   
   // Fetch active games
   fetchActiveGames();
+  
+  // Set up cleanup observer after component is mounted
+  setTimeout(setupCleanupObserver, 0);
   
   // Socket listeners for real-time game updates
   function setupSocketListeners() {
@@ -82,23 +116,37 @@ export default function Games(): HTMLElement {
       return;
     }
     
+    // Force reconnection if socket is not connected
+    if (!socket.connected) {
+      console.log('Socket not connected, attempting to reconnect...');
+      socket.connect();
+    }
+    
+    console.log('Setting up game event listeners...');
+    
     // Listen for new games
-    on('game:created', (game: any) => {
+    const unsubscribeCreated = on('game:created', (game: any) => {
       console.log('New game created:', game);
       fetchActiveGames(); // Reload the game list
     });
+    unsubscribeFunctions.push(unsubscribeCreated);
     
     // Listen for game updates
-    on('game:updated', (game: any) => {
+    const unsubscribeUpdated = on('game:updated', (game: any) => {
       console.log('Game updated:', game);
       fetchActiveGames(); // Reload the game list
     });
+    unsubscribeFunctions.push(unsubscribeUpdated);
     
     // Listen for game deletions
-    on('game:deleted', (gameId: number) => {
+    const unsubscribeDeleted = on('game:deleted', (gameId: number) => {
       console.log('Game deleted:', gameId);
       fetchActiveGames(); // Reload the game list
     });
+    unsubscribeFunctions.push(unsubscribeDeleted);
+    
+    // Debug: notify when events are registered
+    console.log('Game event listeners registered successfully');
   }
   
   // Functions
@@ -129,8 +177,8 @@ export default function Games(): HTMLElement {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
       console.log(`Using backend URL: ${backendUrl}`);
       
-      // Fetch active games
-      const response = await fetch(`${backendUrl}/api/games`, {
+      // 全てのゲーム（履歴含む）を取得するパラメータを追加
+      const response = await fetch(`${backendUrl}/api/games?include_finished=true`, {
         headers
       });
       
@@ -139,13 +187,26 @@ export default function Games(): HTMLElement {
       }
       
       const data = await response.json();
+      console.log('Fetched games data:', data);
       
       // Hide loading indicator
       loadingIndicator.remove();
       
       if (data.games && data.games.length > 0) {
-        // Render games
-        renderGames(data.games);
+        // ゲームのソート: 進行中のゲームを先に、次に待機中のゲーム、最後に完了したゲームを表示
+        const sortedGames = data.games.sort((a: any, b: any) => {
+          // ステータスの優先順位: playing(進行中) > waiting/pending(待機中) > finished(完了)
+          const statusPriority: Record<string, number> = {
+            playing: 0,
+            waiting: 1,
+            pending: 1,
+            finished: 2
+          };
+          return statusPriority[a.status] - statusPriority[b.status];
+        });
+        
+        // Render sorted games
+        renderGames(sortedGames);
       } else {
         // Show no games message
         noGamesMessage.classList.remove('hidden');
@@ -211,11 +272,37 @@ export default function Games(): HTMLElement {
     const card = document.createElement('div');
     card.className = 'card relative';
     
+    // ゲームステータスに応じてカードの外観を変更
+    if (game.status === 'finished') {
+      // 完了したゲームは半透明にして古いことを示す
+      card.className = 'card relative opacity-75';
+    } else if (game.status === 'playing') {
+      // 進行中のゲームは目立つように強調
+      card.className = 'card relative border-2 border-primary';
+    }
+    
     // Status badge
     const statusBadge = document.createElement('div');
-    statusBadge.className = game.status === 'pending' ? 
-      'absolute top-3 right-3 px-2 py-1 rounded-full text-xs bg-yellow-600' :
-      'absolute top-3 right-3 px-2 py-1 rounded-full text-xs bg-green-600';
+    
+    // ステータスによってバッジの色を変更
+    let badgeClass = 'absolute top-3 right-3 px-2 py-1 rounded-full text-xs ';
+    
+    switch (game.status) {
+      case 'playing':
+        badgeClass += 'bg-green-600'; // 進行中: 緑
+        break;
+      case 'pending':
+      case 'waiting':
+        badgeClass += 'bg-yellow-600'; // 待機中: 黄
+        break;
+      case 'finished':
+        badgeClass += 'bg-blue-600'; // 完了: 青
+        break;
+      default:
+        badgeClass += 'bg-gray-600';
+    }
+    
+    statusBadge.className = badgeClass;
     statusBadge.textContent = game.status.charAt(0).toUpperCase() + game.status.slice(1);
     
     // Card content
@@ -280,7 +367,15 @@ export default function Games(): HTMLElement {
     
     if (user && (game.player1_id === user.id || game.player2_id === user.id)) {
       actionButton.className = 'btn-primary w-full';
-      actionButton.textContent = 'Resume Game';
+      
+      // ゲームの状態に応じてボタンテキストを変更
+      if (game.status === 'pending' || game.status === 'waiting') {
+        actionButton.textContent = 'Start Game';
+      } else if (game.status === 'paused') {
+        actionButton.textContent = 'Resume Game';
+      } else {
+        actionButton.textContent = 'Join Game';
+      }
     } else {
       actionButton.className = 'btn-outline w-full';
       actionButton.textContent = 'Watch Game';
