@@ -2,7 +2,6 @@ export default function Home(): HTMLElement {
   const container = document.createElement('div');
   container.className = 'flex flex-col items-center';
   
-  // Hero section
   const hero = document.createElement('div');
   hero.className = 'w-full bg-background-dark py-16 px-4 flex flex-col items-center';
   
@@ -25,13 +24,7 @@ export default function Home(): HTMLElement {
   hero.appendChild(subtitle);
   hero.appendChild(ctaButton);
   
-  // Features section removed as requested
   
-  // How to play section removed as requested
-  
-  // Call to action section removed as requested
-  
-  // Assemble the page
   container.appendChild(hero);
   
   return container;

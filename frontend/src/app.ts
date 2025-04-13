@@ -3,34 +3,26 @@ import { createAuthContext } from './contexts/authContext';
 import { createSocketConnection } from './services/socketService';
 
 export function initializeApp(rootElement: HTMLElement) {
-  // Create auth context first
   const authContext = createAuthContext();
   
-  // Create router with auth context
   const router = createRouter(authContext);
   
-  // Initialize socket connection if user is authenticated
   if (authContext.isAuthenticated()) {
     createSocketConnection(authContext.getToken());
   }
 
-  // Create header component
   const header = createHeader(authContext, router);
   
-  // Create main content container
   const mainContent = document.createElement('main');
   mainContent.className = 'container mx-auto p-4';
   mainContent.id = 'main-content';
   
-  // Create footer
   const footer = createFooter();
   
-  // Add components to root element
   rootElement.appendChild(header);
   rootElement.appendChild(mainContent);
   rootElement.appendChild(footer);
   
-  // Initialize router and render initial page
   router.init(mainContent);
 }
 
@@ -41,14 +33,13 @@ function createHeader(authContext: any, router: any) {
   const navContainer = document.createElement('div');
   navContainer.className = 'container mx-auto flex justify-between items-center';
   
-  // Logo
   const logo = document.createElement('div');
   logo.className = 'text-xl font-bold text-primary';
   logo.textContent = 'ft_transcendence';
   logo.addEventListener('click', () => router.navigateTo('/'));
   logo.style.cursor = 'pointer';
   
-  // Navigation links
+
   const nav = document.createElement('nav');
   nav.className = 'flex items-center space-x-6';
   
@@ -60,16 +51,13 @@ function createHeader(authContext: any, router: any) {
   nav.appendChild(gamesLink);
   nav.appendChild(tournamentsLink);
   
-  // Auth buttons container
   const authContainer = document.createElement('div');
   authContainer.className = 'flex items-center space-x-4';
   
-  // Function to update auth buttons based on authentication state
   const updateAuthButtons = () => {
     authContainer.innerHTML = '';
     
     if (authContext.isAuthenticated()) {
-      // User profile button
       const profileButton = document.createElement('button');
       profileButton.className = 'flex items-center space-x-2';
       profileButton.addEventListener('click', () => router.navigateTo('/profile'));
@@ -84,7 +72,6 @@ function createHeader(authContext: any, router: any) {
       profileButton.appendChild(profileIcon);
       profileButton.appendChild(username);
       
-      // Logout button
       const logoutButton = document.createElement('button');
       logoutButton.className = 'btn-outline';
       logoutButton.textContent = 'Logout';
@@ -97,13 +84,11 @@ function createHeader(authContext: any, router: any) {
       authContainer.appendChild(profileButton);
       authContainer.appendChild(logoutButton);
     } else {
-      // Login button
       const loginButton = document.createElement('button');
       loginButton.className = 'btn-primary';
       loginButton.textContent = 'Login';
       loginButton.addEventListener('click', () => router.navigateTo('/login'));
       
-      // Register button
       const registerButton = document.createElement('button');
       registerButton.className = 'btn-outline';
       registerButton.textContent = 'Register';
@@ -114,10 +99,8 @@ function createHeader(authContext: any, router: any) {
     }
   };
   
-  // Set initial auth buttons
   updateAuthButtons();
   
-  // Subscribe to auth changes
   authContext.subscribe(updateAuthButtons);
   
   navContainer.appendChild(logo);

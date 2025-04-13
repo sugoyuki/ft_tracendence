@@ -2,16 +2,13 @@ import { createAuthContext } from '../contexts/authContext';
 import { getSocketInstance, on } from '../services/socketService';
 
 export default function Games(): HTMLElement {
-  // Get auth context
   const authContext = createAuthContext();
   const user = authContext.getUser();
   const isAuthenticated = authContext.isAuthenticated();
   
-  // Create container
   const container = document.createElement('div');
   container.className = 'container mx-auto px-4 py-8';
   
-  // Page header
   const pageHeader = document.createElement('div');
   pageHeader.className = 'flex justify-between items-center mb-8';
   
@@ -24,7 +21,6 @@ export default function Games(): HTMLElement {
   newGameButton.textContent = 'New Game';
   newGameButton.addEventListener('click', () => openNewGameModal());
   
-  // Disable button if not authenticated
   if (!isAuthenticated) {
     newGameButton.disabled = true;
     newGameButton.title = 'Login to create a game';
@@ -34,18 +30,15 @@ export default function Games(): HTMLElement {
   pageHeader.appendChild(pageTitle);
   pageHeader.appendChild(newGameButton);
   
-  // Games grid
   const gamesGrid = document.createElement('div');
   gamesGrid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
   gamesGrid.id = 'games-grid';
   
-  // Loading indicator
   const loadingIndicator = document.createElement('div');
   loadingIndicator.className = 'flex justify-center items-center py-12';
   loadingIndicator.innerHTML = '<div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-primary"></div><p class="ml-3">Loading games...</p>';
   gamesGrid.appendChild(loadingIndicator);
   
-  // No games message
   const noGamesMessage = document.createElement('div');
   noGamesMessage.className = 'col-span-full text-center py-12 hidden';
   noGamesMessage.innerHTML = `
@@ -64,20 +57,16 @@ export default function Games(): HTMLElement {
   
   gamesGrid.appendChild(noGamesMessage);
   
-  // Add components to container
   container.appendChild(pageHeader);
   container.appendChild(gamesGrid);
   
-  // Store event unsubscribe functions
   const unsubscribeFunctions: (() => void)[] = [];
   
-  // Cleanup function to remove event listeners when component is removed
   const cleanup = () => {
     console.log('Cleaning up Games component event listeners');
     unsubscribeFunctions.forEach(unsubscribe => unsubscribe());
   };
   
-  // Setup observer to detect when this component is removed from DOM
   const setupCleanupObserver = () => {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -90,22 +79,18 @@ export default function Games(): HTMLElement {
       });
     });
     
-    // Start observing the parent element for child removals
     if (container.parentElement) {
       observer.observe(container.parentElement, { childList: true });
     }
   };
   
-  // Clean up on page unload as well
   window.addEventListener('beforeunload', cleanup);
   
-  // Setup socket listeners for real-time updates
   setupSocketListeners();
   
-  // Fetch active games
   fetchActiveGames();
   
-  // Set up cleanup observer after component is mounted
+
   setTimeout(setupCleanupObserver, 0);
   
   // Socket listeners for real-time game updates
@@ -116,7 +101,6 @@ export default function Games(): HTMLElement {
       return;
     }
     
-    // Force reconnection if socket is not connected
     if (!socket.connected) {
       console.log('Socket not connected, attempting to reconnect...');
       socket.connect();
@@ -124,33 +108,27 @@ export default function Games(): HTMLElement {
     
     console.log('Setting up game event listeners...');
     
-    // Listen for new games
     const unsubscribeCreated = on('game:created', (game: any) => {
       console.log('New game created:', game);
       fetchActiveGames(); // Reload the game list
     });
     unsubscribeFunctions.push(unsubscribeCreated);
     
-    // Listen for game updates
     const unsubscribeUpdated = on('game:updated', (game: any) => {
       console.log('Game updated:', game);
       fetchActiveGames(); // Reload the game list
     });
     unsubscribeFunctions.push(unsubscribeUpdated);
     
-    // Listen for game deletions
     const unsubscribeDeleted = on('game:deleted', (gameId: number) => {
       console.log('Game deleted:', gameId);
       fetchActiveGames(); // Reload the game list
     });
     unsubscribeFunctions.push(unsubscribeDeleted);
     
-    // Debug: notify when events are registered
     console.log('Game event listeners registered successfully');
   }
   
-  // Functions
-  // Add refresh button to the page header
   const refreshButton = document.createElement('button');
   refreshButton.className = 'btn-outline ml-2';
   refreshButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>';
@@ -159,7 +137,6 @@ export default function Games(): HTMLElement {
   pageHeader.appendChild(refreshButton);
   
   async function fetchActiveGames() {
-    // Show loading indicator
     gamesGrid.innerHTML = '';
     loadingIndicator.classList.remove('hidden');
     gamesGrid.appendChild(loadingIndicator);
@@ -173,11 +150,9 @@ export default function Games(): HTMLElement {
         headers['Authorization'] = `Bearer ${authContext.getToken()}`;
       }
       
-      // Get backend URL from environment variable
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
       console.log(`Using backend URL: ${backendUrl}`);
       
-      // 全てのゲーム（履歴含む）を取得するパラメータを追加
       const response = await fetch(`${backendUrl}/api/games?include_finished=true`, {
         headers
       });
@@ -193,9 +168,7 @@ export default function Games(): HTMLElement {
       loadingIndicator.remove();
       
       if (data.games && data.games.length > 0) {
-        // ゲームのソート: 進行中のゲームを先に、次に待機中のゲーム、最後に完了したゲームを表示
         const sortedGames = data.games.sort((a: any, b: any) => {
-          // ステータスの優先順位: playing(進行中) > waiting/pending(待機中) > finished(完了)
           const statusPriority: Record<string, number> = {
             playing: 0,
             waiting: 1,
@@ -205,19 +178,15 @@ export default function Games(): HTMLElement {
           return statusPriority[a.status] - statusPriority[b.status];
         });
         
-        // Render sorted games
         renderGames(sortedGames);
       } else {
-        // Show no games message
         noGamesMessage.classList.remove('hidden');
         
-        // Add event listener to create game button
         const createButton = document.getElementById('no-games-create-button');
         if (createButton) {
           createButton.addEventListener('click', () => openNewGameModal());
         }
         
-        // Add event listener to login button
         const loginButton = document.getElementById('no-games-login-button');
         if (loginButton) {
           loginButton.addEventListener('click', () => {
@@ -513,7 +482,8 @@ export default function Games(): HTMLElement {
         errorMessage.classList.add('hidden');
         
         // Create game
-        const response = await fetch('http://localhost:8000/api/games', {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
+        const response = await fetch(`${backendUrl}/api/games`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -545,7 +515,8 @@ export default function Games(): HTMLElement {
   
   async function fetchUsers(selectElement: HTMLSelectElement) {
     try {
-      const response = await fetch('http://localhost:8000/api/users', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
+      const response = await fetch(`${backendUrl}/api/users`, {
         headers: {
           'Authorization': `Bearer ${authContext.getToken()}`
         }

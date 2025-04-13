@@ -6,23 +6,19 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
 
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve", // or "react-jsx" depending on your framework
+    "jsx": "preserve",
 
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Vite specific types */
-    "types": ["vite/client"] // Add this line
+    "types": []
   },
-  "include": ["src"], // Adjust if your source code is elsewhere
-  "references": [{ "path": "./tsconfig.node.json" }] // Keep if you have a tsconfig.node.json
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

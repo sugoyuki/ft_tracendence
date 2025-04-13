@@ -1,14 +1,12 @@
-import { io, Socket } from 'socket.io-client';
+import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 let connectionAttempted = false;
 const listeners: Record<string, Function[]> = {};
 
-// Initialize socket when the module is loaded
 (function initializeSocket() {
-  const token = localStorage.getItem('auth') ? 
-    JSON.parse(localStorage.getItem('auth') || '{}').token : null;
-  
+  const token = localStorage.getItem("auth") ? JSON.parse(localStorage.getItem("auth") || "{}").token : null;
+
   if (token) {
     createSocketConnection(token);
   }
@@ -17,47 +15,41 @@ const listeners: Record<string, Function[]> = {};
 export function createSocketConnection(token: string | null) {
   if (!token) return null;
 
-  // Don't create multiple connections
   if (connectionAttempted && socket && socket.connected) {
-    console.log('Socket connection already exists');
+    console.log("Socket connection already exists");
     return socket;
   }
-  
+
   connectionAttempted = true;
-  
-  // Close existing connection if any
+
   if (socket && socket.connected) {
     socket.disconnect();
   }
 
-  // Get backend URL from environment variable
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
   console.log(`Connecting to socket at: ${backendUrl}`);
-  
-  // Create new connection
+
   socket = io(backendUrl, {
     auth: {
       token,
-      userId: getUserIdFromToken(token)
+      userId: getUserIdFromToken(token),
     },
-    transports: ['websocket'],
-    autoConnect: true
+    transports: ["websocket"],
+    autoConnect: true,
   });
 
-  // Setup listeners
-  socket.on('connect', () => {
-    console.log('Socket connected');
+  socket.on("connect", () => {
+    console.log("Socket connected");
   });
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected');
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected");
   });
 
-  socket.on('error', (error) => {
-    console.error('Socket error:', error);
+  socket.on("error", (error) => {
+    console.error("Socket error:", error);
   });
 
-  // Return socket for direct access
   return socket;
 }
 
@@ -72,7 +64,6 @@ export function closeSocketConnection() {
   }
 }
 
-// Add event listener
 export function on(event: string, callback: Function) {
   if (!listeners[event]) {
     listeners[event] = [];
@@ -80,14 +71,12 @@ export function on(event: string, callback: Function) {
 
   listeners[event].push(callback);
 
-  // Register on socket if we have an active connection
   if (socket) {
     socket.on(event, (...args) => {
       callback(...args);
     });
   }
 
-  // Return unsubscribe function
   return () => {
     if (listeners[event]) {
       const index = listeners[event].indexOf(callback);
@@ -98,19 +87,17 @@ export function on(event: string, callback: Function) {
   };
 }
 
-// Emit event
 export function emit(event: string, ...args: any[]) {
   if (socket) {
     socket.emit(event, ...args);
   } else {
-    console.error('Cannot emit event: Socket not connected');
+    console.error("Cannot emit event: Socket not connected");
   }
 }
 
-// Join a room (game, chat, etc.)
 export function joinRoom(roomType: string, roomId: string) {
   if (!socket) {
-    console.error('Cannot join room: Socket not connected');
+    console.error("Cannot join room: Socket not connected");
     return;
   }
 
@@ -119,22 +106,21 @@ export function joinRoom(roomType: string, roomId: string) {
   console.log(`Joining room: ${roomIdentifier}`);
 }
 
-// Helper to extract user ID from JWT token
 function getUserIdFromToken(token: string): number | null {
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
     );
 
     const payload = JSON.parse(jsonPayload);
     return payload.id || null;
   } catch (error) {
-    console.error('Error extracting user ID from token:', error);
+    console.error("Error extracting user ID from token:", error);
     return null;
   }
 }
