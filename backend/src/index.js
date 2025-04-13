@@ -2,23 +2,27 @@
 
 require("dotenv").config();
 const path = require("path");
+const fs = require("fs");
+
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "/app/certs/server.key";
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "/app/certs/server.crt";
 const fastify = require("fastify")({
   logger: true,
-  // Temporarily disable HTTPS until proper certificates are configured
-  // https: {
-  //   key: process.env.SSL_KEY_PATH ? require("fs").readFileSync(process.env.SSL_KEY_PATH) : undefined,
-  //   cert: process.env.SSL_CERT_PATH ? require("fs").readFileSync(process.env.SSL_CERT_PATH) : undefined,
-  // },
+  https: {
+    key: fs.readFileSync(SSL_KEY_PATH),
+    cert: fs.readFileSync(SSL_CERT_PATH),
+    minVersion: 'TLSv1.2',
+  },
 });
 
 const db = require("./database/db");
 
 fastify.register(require("@fastify/cors"), {
-  origin: '*', // Allow any origin for development, restrict this in production
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: "*",
+  methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  exposedHeaders: ['Content-Disposition']
+  exposedHeaders: ["Content-Disposition"],
 });
 
 fastify.register(require("@fastify/jwt"), {
@@ -27,10 +31,10 @@ fastify.register(require("@fastify/jwt"), {
 
 fastify.register(require("fastify-socket.io"), {
   cors: {
-    origin: '*', // Allow any origin for development
-    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   },
 });
 

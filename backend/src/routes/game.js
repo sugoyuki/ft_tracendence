@@ -57,10 +57,8 @@ async function routes(fastify, options) {
         );
       });
 
-      // Notify specific players
       fastify.io.to(`user:${player1Id}`).to(`user:${player2Id}`).emit("game:created", game);
       
-      // Broadcast to all clients for real-time updates
       fastify.io.emit("game:created", game);
       fastify.log.info(`Game ${gameId} created and broadcasted to all clients`);
 
@@ -187,16 +185,12 @@ async function routes(fastify, options) {
 
   fastify.get("/", { onRequest: [fastify.authenticate] }, async (request, reply) => {
     try {
-      // クエリパラメーターからinclude_finishedを取得
       const includeFinished = request.query.include_finished === 'true';
-      
-      // ログ出力を追加してデバッグしやすくする
       fastify.log.info(`Fetching games with include_finished=${includeFinished}`);
       
-      // SQLクエリの条件部分を動的に生成
       const statusCondition = includeFinished 
-        ? "" // 全てのゲームを含める場合はフィルタリングしない
-        : "WHERE g.status IN ('pending', 'waiting', 'playing')"; // 完了したゲームを除外
+        ? "" 
+        : "WHERE g.status IN ('pending', 'waiting', 'playing')";
       
       const games = await new Promise((resolve, reject) => {
         db.all(
