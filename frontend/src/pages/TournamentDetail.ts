@@ -192,7 +192,7 @@ export default function TournamentDetail(): HTMLElement {
         headers["Authorization"] = `Bearer ${authContext.getToken()}`;
       }
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/tournaments/${id}`, {
         headers,
       });
@@ -579,7 +579,7 @@ export default function TournamentDetail(): HTMLElement {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/tournaments/${tournamentId}/join`, {
         method: "POST",
         headers: {
@@ -593,7 +593,6 @@ export default function TournamentDetail(): HTMLElement {
         throw new Error(errorData.error || "Failed to join tournament");
       }
 
-      // Reload tournament data
       loadTournamentData(tournamentId);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to join tournament");
@@ -607,7 +606,7 @@ export default function TournamentDetail(): HTMLElement {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/tournaments/${tournamentId}/leave`, {
         method: "POST",
         headers: {
@@ -621,7 +620,6 @@ export default function TournamentDetail(): HTMLElement {
         throw new Error(errorData.error || "Failed to leave tournament");
       }
 
-      // Reload tournament data
       loadTournamentData(tournamentId);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to leave tournament");
@@ -636,7 +634,7 @@ export default function TournamentDetail(): HTMLElement {
 
     if (confirm("Are you sure you want to start the tournament? This action cannot be undone.")) {
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
         const response = await fetch(`${backendUrl}/api/tournaments/${tournamentId}/start`, {
           method: "POST",
           headers: {
@@ -650,7 +648,6 @@ export default function TournamentDetail(): HTMLElement {
           throw new Error(errorData.error || "Failed to start tournament");
         }
 
-        // Reload tournament data
         loadTournamentData(tournamentId);
       } catch (error) {
         alert(error instanceof Error ? error.message : "Failed to start tournament");
@@ -659,11 +656,9 @@ export default function TournamentDetail(): HTMLElement {
   }
 
   function showError(message: string) {
-    // Hide loading indicator and content
     loadingIndicator.classList.add("hidden");
     contentContainer.classList.add("hidden");
 
-    // Update and show error message
     const errorText = errorMessage.querySelector("p");
     if (errorText) {
       errorText.textContent = message;
@@ -671,7 +666,6 @@ export default function TournamentDetail(): HTMLElement {
 
     errorMessage.classList.remove("hidden");
 
-    // Add retry button functionality
     const retryButton = document.getElementById("retry-button");
     if (retryButton && tournamentId) {
       retryButton.onclick = () => loadTournamentData(tournamentId);

@@ -26,7 +26,7 @@ export function createSocketConnection(token: string | null) {
     socket.disconnect();
   }
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
   console.log(`Connecting to socket at: ${backendUrl}`);
 
   socket = io(backendUrl, {

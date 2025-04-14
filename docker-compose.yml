@@ -24,12 +24,9 @@ services:
       - ./backend:/app
       - /app/node_modules
       - ./backend/data:/app/data
-      - ./certs:/app/certs
     environment:
       - NODE_ENV=development
       - JWT_SECRET=your_jwt_secret_key_replace_in_production
-      - SSL_KEY_PATH=/app/certs/server.key
-      - SSL_CERT_PATH=/app/certs/server.crt
     restart: unless-stopped
     networks:
       - app-network

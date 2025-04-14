@@ -151,7 +151,7 @@ export default function Profile(): HTMLElement {
     if (!gameHistoryBody) return;
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/users/${user?.id}/games`, {
         headers: {
           Authorization: `Bearer ${authContext.getToken()}`,
@@ -235,7 +235,7 @@ export default function Profile(): HTMLElement {
 
   async function loadUserStats() {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/users/${user?.id}/games`, {
         headers: {
           Authorization: `Bearer ${authContext.getToken()}`,
@@ -395,7 +395,7 @@ export default function Profile(): HTMLElement {
         submitButton.disabled = true;
         errorMessage.classList.add("hidden");
 
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
         const response = await fetch(`${backendUrl}/api/users/${user?.id}`, {
           method: "PUT",
           headers: {

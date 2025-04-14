@@ -150,7 +150,7 @@ export default function Games(): HTMLElement {
         headers['Authorization'] = `Bearer ${authContext.getToken()}`;
       }
       
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       console.log(`Using backend URL: ${backendUrl}`);
       
       const response = await fetch(`${backendUrl}/api/games?include_finished=true`, {
@@ -482,7 +482,7 @@ export default function Games(): HTMLElement {
         errorMessage.classList.add('hidden');
         
         // Create game
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
         const response = await fetch(`${backendUrl}/api/games`, {
           method: 'POST',
           headers: {
@@ -515,7 +515,7 @@ export default function Games(): HTMLElement {
   
   async function fetchUsers(selectElement: HTMLSelectElement) {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       const response = await fetch(`${backendUrl}/api/users`, {
         headers: {
           'Authorization': `Bearer ${authContext.getToken()}`

@@ -2,17 +2,9 @@
 
 require("dotenv").config();
 const path = require("path");
-const fs = require("fs");
 
-const SSL_KEY_PATH = process.env.SSL_KEY_PATH || "/app/certs/server.key";
-const SSL_CERT_PATH = process.env.SSL_CERT_PATH || "/app/certs/server.crt";
 const fastify = require("fastify")({
-  logger: true,
-  https: {
-    key: fs.readFileSync(SSL_KEY_PATH),
-    cert: fs.readFileSync(SSL_CERT_PATH),
-    minVersion: 'TLSv1.2',
-  },
+  logger: true
 });
 
 const db = require("./database/db");

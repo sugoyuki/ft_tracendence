@@ -72,7 +72,7 @@ export default function Tournament(): HTMLElement {
         headers["Authorization"] = `Bearer ${authContext.getToken()}`;
       }
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/tournaments`, {
         headers,
       });
@@ -263,7 +263,7 @@ export default function Tournament(): HTMLElement {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/tournaments/${tournamentId}/join`, {
         method: "POST",
         headers: {
@@ -292,7 +292,7 @@ export default function Tournament(): HTMLElement {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/tournaments/${tournamentId}/leave`, {
         method: "POST",
         headers: {
@@ -470,7 +470,7 @@ export default function Tournament(): HTMLElement {
         submitButton.disabled = true;
         errorMessage.classList.add("hidden");
 
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
         const response = await fetch(`${backendUrl}/api/tournaments`, {
           method: "POST",
           headers: {

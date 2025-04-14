@@ -113,7 +113,7 @@ export default function Game(): HTMLElement {
     gameTitle.textContent = `Game #${id}`;
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://localhost:8001";
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
       const response = await fetch(`${backendUrl}/api/games/${id}`, {
         headers: {
           Authorization: `Bearer ${authContext.getToken()}`,

@@ -46,7 +46,7 @@ export function createAuthContext() {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       console.log('Using backend URL:', backendUrl);
       const response = await fetch(`${backendUrl}/api/auth/login`, {
         method: 'POST',
@@ -80,7 +80,7 @@ export function createAuthContext() {
   
   const register = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8001';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       console.log('Using backend URL:', backendUrl);
       
       console.log('Sending registration request to:', `${backendUrl}/api/auth/register`);
@@ -119,7 +119,7 @@ export function createAuthContext() {
   const logout = async (): Promise<void> => {
     if (token) {
       try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8000';
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       console.log('Using backend URL:', backendUrl);
         await fetch(`${backendUrl}/api/auth/logout`, {
           method: 'POST',
@@ -145,7 +145,7 @@ export function createAuthContext() {
     if (!token) return;
     
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://localhost:8000';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001';
       console.log('Using backend URL:', backendUrl);
       const response = await fetch(`${backendUrl}/api/auth/me`, {
         headers: {
