@@ -139,19 +139,38 @@ module.exports = function (io) {
           gameStatus: gameState.status,
         });
 
-        if (gameState.player1.ready && gameState.player2.ready && gameState.status !== "playing") {
+        if (gameState.player1.ready && gameState.player2.ready && gameState.status === "waiting") {
+          // 状態を更新する前にログを記録
+          console.log(`Both players are ready in game ${gameId}. Starting game...`);
+          
+          // メモリ内のゲームステータスを更新
           gameState.status = "playing";
-
-          db.run("UPDATE games SET status = ? WHERE id = ?", ["active", gameId], (err) => {
+          
+          // データベースのステータスもplayingに揃える
+          db.run("UPDATE games SET status = ? WHERE id = ?", ["playing", gameId], (err) => {
             if (err) {
-              console.error("Error updating game status to active:", err);
+              console.error("Error updating game status to playing:", err);
             } else {
-              console.log(`Game ${gameId} status updated to active in database`);
-
-              io.to(`game:${gameId}`).emit("game:start", { message: "Game started!" });
-
+              console.log(`Game ${gameId} status updated to playing in database`);
+              
+              // 正しく通知されたか確認するログ
+              console.log(`Emitting game:start event to room game:${gameId}`);
+              
+              // すべてのクライアントにゲーム開始を通知
+              io.to(`game:${gameId}`).emit("game:start", { 
+                message: "Game started!",
+                game: gameState
+              });
+              
+              // ゲームループを開始
               startGameLoop(gameId);
             }
+          });
+        } else {
+          console.log(`Game ${gameId} conditions not met for start:`, {
+            player1Ready: gameState.player1.ready,
+            player2Ready: gameState.player2.ready,
+            gameStatus: gameState.status
           });
         }
 

@@ -4,7 +4,7 @@ const { db } = require("../database/db");
 
 async function routes(fastify, options) {
   fastify.post("/", { onRequest: [fastify.authenticate] }, async (request, reply) => {
-    const { name } = request.body;
+    const { name, description, maxPlayers, startDate } = request.body;
 
     if (!name) {
       return reply.code(400).send({ error: "Tournament name is required" });
@@ -12,10 +12,14 @@ async function routes(fastify, options) {
 
     try {
       const tournamentId = await new Promise((resolve, reject) => {
-        db.run("INSERT INTO tournaments (name, status) VALUES (?, ?)", [name, "pending"], function (err) {
-          if (err) reject(err);
-          resolve(this.lastID);
-        });
+        db.run(
+          "INSERT INTO tournaments (name, status, created_by, description, max_players, start_date) VALUES (?, ?, ?, ?, ?, ?)", 
+          [name, "pending", request.user.id, description, maxPlayers || 4, startDate], 
+          function (err) {
+            if (err) reject(err);
+            resolve(this.lastID);
+          }
+        );
       });
 
       await new Promise((resolve, reject) => {
@@ -47,12 +51,37 @@ async function routes(fastify, options) {
 
   fastify.get("/", { onRequest: [fastify.authenticate] }, async (request, reply) => {
     try {
+      // 作成者情報も含めて取得するようにクエリを修正
       const tournaments = await new Promise((resolve, reject) => {
-        db.all("SELECT * FROM tournaments ORDER BY created_at DESC", (err, rows) => {
-          if (err) reject(err);
-          resolve(rows);
-        });
+        db.all(
+          `SELECT t.*, u.username as creator_name, u.id as creator_id,
+                  (SELECT COUNT(*) FROM tournament_participants WHERE tournament_id = t.id) as current_players
+           FROM tournaments t
+           LEFT JOIN users u ON t.created_by = u.id
+           ORDER BY t.created_at DESC`,
+          (err, rows) => {
+            if (err) reject(err);
+            resolve(rows);
+          }
+        );
       });
+
+      // 各トーナメントの参加者情報を取得
+      for (const tournament of tournaments) {
+        tournament.participants = await new Promise((resolve, reject) => {
+          db.all(
+            `SELECT tp.*, u.username 
+             FROM tournament_participants tp
+             JOIN users u ON tp.user_id = u.id
+             WHERE tp.tournament_id = ?`,
+            [tournament.id],
+            (err, participants) => {
+              if (err) reject(err);
+              resolve(participants || []);
+            }
+          );
+        });
+      }
 
       return reply.send({ tournaments });
     } catch (err) {
@@ -66,10 +95,17 @@ async function routes(fastify, options) {
 
     try {
       const tournament = await new Promise((resolve, reject) => {
-        db.get("SELECT * FROM tournaments WHERE id = ?", [id], (err, row) => {
-          if (err) reject(err);
-          resolve(row);
-        });
+        db.get(
+          `SELECT t.*, u.username as creator_name
+           FROM tournaments t
+           LEFT JOIN users u ON t.created_by = u.id
+           WHERE t.id = ?`, 
+          [id], 
+          (err, row) => {
+            if (err) reject(err);
+            resolve(row);
+          }
+        );
       });
 
       if (!tournament) {

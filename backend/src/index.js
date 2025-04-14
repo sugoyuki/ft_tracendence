@@ -36,6 +36,8 @@ fastify.register(require("./routes/user"), { prefix: "/api/users" });
 fastify.register(require("./routes/auth"), { prefix: "/api/auth" });
 fastify.register(require("./routes/game"), { prefix: "/api/games" });
 fastify.register(require("./routes/tournament"), { prefix: "/api/tournaments" });
+fastify.register(require("./routes/tournament-match"), { prefix: "/api/tournament" });
+fastify.register(require("./routes/friend"), { prefix: "/api/friends" });
 
 fastify.ready((err) => {
   if (err) throw err;

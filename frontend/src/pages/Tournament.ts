@@ -156,9 +156,13 @@ export default function Tournament(): HTMLElement {
     info.className = "grid grid-cols-2 gap-4 mb-6";
 
     info.appendChild(createInfoItem("Status", tournament.status));
-    info.appendChild(createInfoItem("Players", `${tournament.currentPlayers}/${tournament.maxPlayers}`));
+
+    const currentPlayers = tournament.participants?.length || 0;
+    const maxPlayers = tournament.max_players || 4;
+    info.appendChild(createInfoItem("Players", `${currentPlayers}/${maxPlayers}`));
+
     info.appendChild(createInfoItem("Starts", formatDate(tournament.startDate)));
-    info.appendChild(createInfoItem("Created by", tournament.createdBy));
+    info.appendChild(createInfoItem("Created by", tournament.creator_name || "Unknown"));
 
     if (tournament.status === "registration") {
       const progress = Math.round((tournament.currentPlayers / tournament.maxPlayers) * 100);
@@ -200,9 +204,8 @@ export default function Tournament(): HTMLElement {
       actionButton.className = "btn-outline w-full";
       actionButton.textContent = "View Results";
     } else {
-      actionButton.className = "btn-outline w-full opacity-50 cursor-not-allowed";
-      actionButton.textContent = "Not Available";
-      actionButton.disabled = true;
+      actionButton.className = "btn-outline w-full";
+      actionButton.textContent = "View Tournament";
     }
 
     if (tournament.status !== "registration" || !isAuthenticated) {
@@ -252,8 +255,19 @@ export default function Tournament(): HTMLElement {
   }
 
   function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+    if (!dateString) return "Not set";
+
+    try {
+      const date = new Date(dateString);
+      // 日付が有効かどうかチェック
+      if (isNaN(date.getTime())) {
+        return "Invalid Date";
+      }
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "Invalid Date";
+    }
   }
 
   async function joinTournament(tournamentId: number) {

@@ -176,6 +176,107 @@ async function routes(fastify, options) {
 
       fastify.io.to(`game:${id}`).emit("game:updated", updatedGame);
 
+      // ゲームが完了している場合、トーナメントの次ラウンドを生成する
+      if (status === "completed") {
+        // このゲームがトーナメントのマッチか確認
+        const tournamentMatch = await new Promise((resolve, reject) => {
+          db.get(
+            "SELECT * FROM tournament_matches WHERE game_id = ?",
+            [id],
+            (err, row) => {
+              if (err) reject(err);
+              resolve(row);
+            }
+          );
+        });
+
+        if (tournamentMatch) {
+          // 勝者を決定
+          const winnerId = player1Score > player2Score ? game.player1_id : game.player2_id;
+          const currentRound = tournamentMatch.round;
+          const currentOrder = tournamentMatch.match_order;
+          const tournamentId = tournamentMatch.tournament_id;
+          
+          // 同じラウンドの他のマッチを確認
+          const otherMatches = await new Promise((resolve, reject) => {
+            db.all(
+              "SELECT tm.*, g.status, g.player1_score, g.player2_score, g.player1_id, g.player2_id " +
+              "FROM tournament_matches tm " +
+              "JOIN games g ON tm.game_id = g.id " +
+              "WHERE tm.tournament_id = ? AND tm.round = ? AND tm.match_order != ?",
+              [tournamentId, currentRound, currentOrder],
+              (err, rows) => {
+                if (err) reject(err);
+                resolve(rows);
+              }
+            );
+          });
+          
+          // このラウンドのすべてのマッチが完了しているか確認
+          const allMatchesCompleted = otherMatches.every(match => match.status === "completed");
+          
+          if (allMatchesCompleted) {
+            // このラウンドの全勝者を取得
+            const winners = [winnerId];
+            otherMatches.forEach(match => {
+              const matchWinner = match.player1_score > match.player2_score ? match.player1_id : match.player2_id;
+              winners.push(matchWinner);
+            });
+            
+            // 次のラウンドのマッチを生成
+            const nextRound = currentRound + 1;
+            
+            // 次ラウンドの対戦カードを生成
+            for (let i = 0; i < winners.length; i += 2) {
+              if (i + 1 < winners.length) {
+                const player1Id = winners[i];
+                const player2Id = winners[i + 1];
+                const matchOrder = Math.floor(i / 2) + 1;
+                
+                // 新しいゲームを作成
+                const newGameId = await new Promise((resolve, reject) => {
+                  db.run(
+                    "INSERT INTO games (player1_id, player2_id, status) VALUES (?, ?, ?)",
+                    [player1Id, player2Id, "pending"],
+                    function(err) {
+                      if (err) reject(err);
+                      resolve(this.lastID);
+                    }
+                  );
+                });
+                
+                // トーナメントマッチとして登録
+                await new Promise((resolve, reject) => {
+                  db.run(
+                    "INSERT INTO tournament_matches (tournament_id, game_id, round, match_order) VALUES (?, ?, ?, ?)",
+                    [tournamentId, newGameId, nextRound, matchOrder],
+                    function(err) {
+                      if (err) reject(err);
+                      resolve(this.lastID);
+                    }
+                  );
+                });
+              }
+            }
+            
+            // トーナメントデータを更新
+            const updatedTournament = await new Promise((resolve, reject) => {
+              db.get(
+                "SELECT * FROM tournaments WHERE id = ?",
+                [tournamentId],
+                (err, tournament) => {
+                  if (err) reject(err);
+                  resolve(tournament);
+                }
+              );
+            });
+            
+            // WebSocketでトーナメント更新を通知
+            fastify.io.to(`tournament:${tournamentId}`).emit("tournament:updated", updatedTournament);
+          }
+        }
+      }
+
       return reply.send({ game: updatedGame });
     } catch (err) {
       fastify.log.error(err);

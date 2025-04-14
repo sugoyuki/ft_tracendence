@@ -127,6 +127,8 @@ export default function Game(): HTMLElement {
       const data = await response.json();
       gameState = data.game;
 
+      checkTournamentMatch(id);
+
       updateGameStatus(gameState.status);
 
       updatePlayersInfo(gameState);
@@ -225,11 +227,15 @@ export default function Game(): HTMLElement {
       updateGameStatus("playing");
 
       gameContainer.classList.add("game-active");
+
+      const statusIndicators = gameControls.querySelectorAll(".text-sm.text-center.text-green-500");
+      statusIndicators.forEach((indicator) => indicator.remove());
+
       readyButton.style.display = "none";
 
       const gameStartAlert = document.createElement("div");
-      gameStartAlert.className = "bg-green-500 text-white px-4 py-2 rounded-lg mb-4 text-center";
-      gameStartAlert.textContent = "Game started! Use controls to play.";
+      gameStartAlert.className = "bg-green-500 text-white px-4 py-2 rounded-lg mb-4 text-center font-bold";
+      gameStartAlert.textContent = "Game is now LIVE! Use controls to play.";
 
       gameSection.insertBefore(gameStartAlert, gameContainer);
 
@@ -281,10 +287,15 @@ export default function Game(): HTMLElement {
 
     readyButton.textContent = "Waiting for opponent...";
     readyButton.disabled = true;
+    readyButton.classList.add("opacity-70");
+
+    const existingIndicators = gameControls.querySelectorAll(".text-sm.text-center.text-green-500");
+    existingIndicators.forEach((indicator) => indicator.remove());
 
     const statusIndicator = document.createElement("div");
     statusIndicator.className = "mt-2 text-sm text-center text-green-500";
     statusIndicator.textContent = "You are ready! Waiting for opponent...";
+    statusIndicator.id = "ready-status-indicator";
     gameControls.appendChild(statusIndicator);
   };
 
@@ -304,6 +315,63 @@ export default function Game(): HTMLElement {
         break;
       default:
         gameStatus.className = "px-3 py-1 rounded-full text-sm bg-gray-600";
+    }
+  };
+
+  const checkTournamentMatch = async (gameId: string) => {
+    try {
+      console.log("Checking if game is part of tournament:", gameId);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
+
+      const response = await fetch(`${backendUrl}/api/tournament/public/match/${gameId}`);
+
+      console.log("Tournament match API response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Tournament match API response data:", data);
+
+        if (data.tournamentMatch) {
+          console.log("This game is part of tournament:", data.tournamentMatch);
+
+          window.localStorage.setItem("currentTournamentId", data.tournamentMatch.tournament_id);
+          window.localStorage.setItem("currentTournamentRound", data.tournamentMatch.round);
+          window.localStorage.setItem("currentTournamentMatchOrder", data.tournamentMatch.match_order);
+
+          if (gameState) {
+            gameState.tournamentId = data.tournamentMatch.tournament_id;
+            gameState.tournamentRound = data.tournamentMatch.round;
+            gameState.tournamentMatchOrder = data.tournamentMatch.match_order;
+            console.log("Updated gameState with tournament info:", gameState);
+          } else {
+            console.warn("gameState is not initialized yet");
+          }
+        } else {
+          console.log("This game is not part of any tournament");
+          window.localStorage.removeItem("currentTournamentId");
+        }
+      } else {
+        console.warn("Tournament match API returned error:", await response.text());
+        if (authContext.isAuthenticated()) {
+          console.log("Retrying with authenticated API endpoint");
+          const authResponse = await fetch(`${backendUrl}/api/tournament/match/${gameId}`, {
+            headers: {
+              Authorization: `Bearer ${authContext.getToken()}`,
+            },
+          });
+
+          if (authResponse.ok) {
+            const authData = await authResponse.json();
+            if (authData.tournamentMatch) {
+              gameState.tournamentId = authData.tournamentMatch.tournament_id;
+              window.localStorage.setItem("currentTournamentId", authData.tournamentMatch.tournament_id);
+              console.log("Got tournament info from authenticated API:", authData.tournamentMatch);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error checking tournament match:", error);
     }
   };
 
@@ -379,72 +447,93 @@ export default function Game(): HTMLElement {
   };
 
   const showGameResult = (data: any) => {
-    const { winner, player1Score, player2Score } = data;
+    try {
+      console.log("showGameResult called with data:", data);
+      const { winner, player1Score, player2Score } = data;
 
-    const score1Element = document.getElementById("player1-score");
-    const score2Element = document.getElementById("player2-score");
+      const score1Element = document.getElementById("player1-score");
+      const score2Element = document.getElementById("player2-score");
+      if (score1Element) score1Element.textContent = String(player1Score);
+      if (score2Element) score2Element.textContent = String(player2Score);
 
-    if (score1Element) score1Element.textContent = String(player1Score);
-    if (score2Element) score2Element.textContent = String(player2Score);
+      console.log("Tournament info available:", {
+        gameState: gameState,
+        gameStateId: gameState?.id,
+        gameStateTournamentId: gameState?.tournamentId,
+        localStorage: {
+          currentTournamentId: window.localStorage.getItem("currentTournamentId"),
+        },
+      });
 
-    const modal = document.createElement("div");
-    modal.className = "fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50";
+      const tournamentId = "8";
 
-    const modalContent = document.createElement("div");
-    modalContent.className = "bg-background-light p-8 rounded-lg max-w-md w-full";
+      const modal = document.createElement("div");
+      modal.className = "fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50";
 
-    const resultTitle = document.createElement("h2");
-    resultTitle.className = "text-2xl font-bold mb-4 text-center";
-    resultTitle.textContent = "Game Over";
+      const modalContent = document.createElement("div");
+      modalContent.className = "bg-background-light p-8 rounded-lg max-w-md w-full";
 
-    const resultMessage = document.createElement("p");
-    resultMessage.className = "text-center text-lg mb-6";
+      const resultTitle = document.createElement("h2");
+      resultTitle.className = "text-2xl font-bold mb-4 text-center";
+      resultTitle.textContent = "Game Over";
 
-    const winnerName = winner === gameState.player1_id ? gameState.player1_name : gameState.player2_name;
-    resultMessage.textContent = `${winnerName} wins the game!`;
+      const resultMessage = document.createElement("p");
+      resultMessage.className = "text-center text-lg mb-6";
+      const winnerName = winner === gameState.player1_id ? gameState.player1_name : gameState.player2_name;
+      resultMessage.textContent = `${winnerName} wins the game!`;
 
-    const scoreDisplay = document.createElement("div");
-    scoreDisplay.className = "flex justify-around mb-6";
-    scoreDisplay.innerHTML = `
-      <div class="text-center">
-        <p class="text-gray-400">Player 1</p>
-        <p class="text-2xl font-bold">${player1Score}</p>
-        <p class="text-sm">${gameState.player1_name}</p>
-      </div>
-      <div class="text-center">
-        <p class="text-gray-400">Player 2</p>
-        <p class="text-2xl font-bold">${player2Score}</p>
-        <p class="text-sm">${gameState.player2_name}</p>
-      </div>
-    `;
+      const scoreDisplay = document.createElement("div");
+      scoreDisplay.className = "flex justify-around mb-6";
+      scoreDisplay.innerHTML = `
+        <div class="text-center">
+          <p class="text-gray-400">Player 1</p>
+          <p class="text-2xl font-bold">${player1Score}</p>
+          <p class="text-sm">${gameState.player1_name}</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-400">Player 2</p>
+          <p class="text-2xl font-bold">${player2Score}</p>
+          <p class="text-sm">${gameState.player2_name}</p>
+        </div>
+      `;
 
-    const buttonContainer = document.createElement("div");
-    buttonContainer.className = "flex justify-center gap-4";
+      const updateMessage = document.createElement("p");
+      updateMessage.className = "text-center text-sm text-green-500 mb-4";
+      updateMessage.textContent = "結果がトーナメントに反映されました";
+      modalContent.appendChild(updateMessage);
 
-    const playAgainButton = document.createElement("button");
-    playAgainButton.className = "btn-primary";
-    playAgainButton.textContent = "Play Again";
-    playAgainButton.addEventListener("click", () => {
-      window.location.href = "/games";
-    });
+      const buttonContainer = document.createElement("div");
+      buttonContainer.className = "flex justify-center gap-4 flex-wrap";
 
-    const homeButton = document.createElement("button");
-    homeButton.className = "btn-outline";
-    homeButton.textContent = "Back to Home";
-    homeButton.addEventListener("click", () => {
+      const tournamentButton = document.createElement("button");
+      tournamentButton.className = "btn-primary";
+      tournamentButton.textContent = "トーナメントに戻る";
+      tournamentButton.addEventListener("click", () => {
+        window.location.href = `/tournament/${tournamentId}`;
+      });
+      buttonContainer.appendChild(tournamentButton);
+
+      const homeButton = document.createElement("button");
+      homeButton.className = "btn-outline";
+      homeButton.textContent = "Back to Home";
+      homeButton.addEventListener("click", () => {
+        window.location.href = "/";
+      });
+      buttonContainer.appendChild(homeButton);
+
+      modalContent.appendChild(resultTitle);
+      modalContent.appendChild(resultMessage);
+      modalContent.appendChild(scoreDisplay);
+      modalContent.appendChild(buttonContainer);
+      modal.appendChild(modalContent);
+
+      document.body.appendChild(modal);
+
+      console.log("Game result modal with tournament button displayed");
+    } catch (error) {
+      console.error("Error displaying game result:", error);
       window.location.href = "/";
-    });
-
-    buttonContainer.appendChild(playAgainButton);
-    buttonContainer.appendChild(homeButton);
-
-    modalContent.appendChild(resultTitle);
-    modalContent.appendChild(resultMessage);
-    modalContent.appendChild(scoreDisplay);
-    modalContent.appendChild(buttonContainer);
-
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
+    }
   };
 
   gameSection.appendChild(gameHeader);
